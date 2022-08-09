@@ -19,10 +19,13 @@ const colDef: ColDef[] = [
     { field: "country", rowGroup: true },
     { field: "sport", rowGroup: true },
     { field: "year", pivot: true },
+    { field: "total", aggFunc: "sum" },
     { field: "gold", aggFunc: "sum" },
     { field: "silver", aggFunc: "sum" },
     { field: "bronze", aggFunc: "sum" },
 ];
+
+const expandableGroupCols = new Set(["total"]);
 
 const isColGroupDef = (def: ColDef | ColGroupDef): def is ColGroupDef =>
     (def as ColGroupDef).groupId !== undefined;
@@ -33,7 +36,8 @@ const getPivotResultColumns = (columns: any[][]) => {
         cols: string[],
         acc: (ColDef | ColGroupDef)[]
     ): (ColDef | ColGroupDef)[] => {
-        if (!cols.length) return [];
+        const colName = key.at(-1);
+        if (!cols.length || !colName) return [];
         const head = cols[0];
         const tail = cols.slice(1);
         const groupDef = acc
@@ -58,8 +62,20 @@ const getPivotResultColumns = (columns: any[][]) => {
                       } as ColGroupDef)
                     : ({
                           field: key.join(seperator),
-                          headerName: key.at(-1),
+                          headerName: colName,
+                          columnGroupShow: expandableGroupCols.has(colName)
+                              ? "closed"
+                              : "open",
                       } as ColDef),
+                ...(expandableGroupCols.has(colName)
+                    ? [
+                          {
+                              field: key.join(seperator),
+                              headerName: colName,
+                              columnGroupShow: "open",
+                          } as ColDef,
+                      ]
+                    : []),
             ];
         }
     };
